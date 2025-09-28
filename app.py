@@ -129,7 +129,7 @@ if selected_models:
                     st.markdown("##### Confusion Matrix")
                     cm = confusion_matrix(y_test, y_pred)
                     fig, ax = plt.subplots()
-                    sns.heatmap(cm, annot=True, fmt='d', cmap='mako', xticklabels=class_names, yticklabels=class_names, ax=ax)
+                    sns.heatmap(cm, annot=True, fmt='d', cmap='viridis', xticklabels=class_names, yticklabels=class_names, ax=ax)
                     ax.set_xlabel('Predicted')
                     ax.set_ylabel('Actual')
                     st.pyplot(fig, use_container_width=True)
