@@ -64,7 +64,7 @@ with st.sidebar:
         default=["Random Forest", "Logistic Regression", "K-means"]
     )
     st.divider()
-    st.write("App designed by Gemini.")
+    st.write("Satyam Kumar.")
 
 
 # --- Main App Body ---
