@@ -22,19 +22,22 @@ from sklearn.cluster import KMeans
 
 # --- Page Configuration ---
 st.set_page_config(
-    page_title="ML Model Comparison App",
-    page_icon="📱",
-    layout="wide"
+    page_title="ML Model Analyzer",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="auto" # Use "auto" to respect system theme
 )
 
-# --- App Title and Description ---
-st.title("📱 Teen Phone Addiction: ML Model Analyzer")
-st.write(
-    "This app analyzes the teen phone addiction dataset, compares various machine learning models, "
-    "and generates a summary table with key performance and theoretical metrics."
-)
+# --- App Title and Description (New Style) ---
+st.title("🤖 ML Model Analyzer for Teen Phone Addiction")
+st.markdown("""
+    Welcome to the interactive Machine Learning model comparator. 
+    This tool allows you to train, evaluate, and compare different classification and clustering models on the Teen Phone Addiction dataset.
+    **Select models from the sidebar to begin!**
+""")
+st.divider()
 
-# --- Data Loading and Caching (Modified for Deployment) ---
+# --- Data Loading and Caching (No Changes) ---
 @st.cache_data
 def load_and_preprocess_data(file_path):
     """Loads and preprocesses the data directly from the file path."""
@@ -65,9 +68,9 @@ def load_and_preprocess_data(file_path):
 
     return train_test_split(X, y, test_size=0.2, random_state=42, stratify=y), preprocessor, class_names_str, X
 
-# --- Sidebar for Model Selection ---
+# --- Sidebar for Model Selection (No Changes) ---
 with st.sidebar:
-    st.header("⚙️ Configuration")
+    st.header("⚙️ Model Configuration")
     model_options = [
         "Logistic Regression", "Decision Tree", "k-Nearest Neighbors (kNN)",
         "Support Vector Machine (SVM)", "Random Forest", "Neural Networks (NNs)", "K-means"
@@ -77,16 +80,17 @@ with st.sidebar:
         options=model_options,
         default=["Logistic Regression", "Random Forest", "Support Vector Machine (SVM)"]
     )
+    st.info("The final summary table will appear at the bottom of the page after the models run.")
+
 
 # --- Main App Body ---
 if selected_models:
-    st.header("📊 Results and Analysis")
-    
     # Load data directly from the local file
     file_name = 'teen_phone_addiction_dataset.csv'
     (X_train, X_test, y_train, y_test), preprocessor, class_names, X_full = load_and_preprocess_data(file_name)
     
     results_list = []
+    st.header("📊 Model Performance Results")
 
     # --- Supervised Models Evaluation ---
     supervised_models = {
@@ -100,10 +104,11 @@ if selected_models:
     
     for name in selected_models:
         if name in supervised_models:
-            with st.expander(f"▼ {name} Results", expanded=False):
+            with st.expander(f"**{name}** Results", expanded=True):
                 model = supervised_models[name]
                 pipeline = Pipeline(steps=[('preprocessor', preprocessor), ('classifier', model)])
                 
+                # --- Training & Prediction ---
                 start_time = time.time()
                 pipeline.fit(X_train, y_train)
                 training_time = time.time() - start_time
@@ -112,6 +117,7 @@ if selected_models:
                 y_pred = pipeline.predict(X_test)
                 prediction_time = time.time() - start_time
 
+                # --- Metrics Calculation ---
                 report = classification_report(y_test, y_pred, target_names=class_names, output_dict=True)
                 y_prob = pipeline.predict_proba(X_test)
                 auc_roc = roc_auc_score(y_test, y_prob, multi_class='ovr')
@@ -123,25 +129,43 @@ if selected_models:
                 
                 eval_metrics_str = (f"Precision: {report['weighted avg']['precision']:.2f}, Recall: {report['weighted avg']['recall']:.2f}, "
                                     f"F-score: {report['weighted avg']['f1-score']:.2f}, AUC-ROC: {auc_roc:.2f}")
+                
+                # --- Display Results in Columns (New Style) ---
+                col1, col2 = st.columns((1, 1))
 
-                st.subheader("Performance Metrics")
-                st.text(eval_metrics_str)
-                st.text(f"Training Time: {training_time:.4f}s | Prediction Speed: {prediction_time:.4f}s | Memory Usage: {memory_kb:.2f} KB")
+                with col1:
+                    st.subheader("📈 Performance Metrics")
+                    metric1, metric2 = st.columns(2)
+                    metric1.metric(label="Weighted F1-Score", value=f"{report['weighted avg']['f1-score']:.2f}")
+                    metric2.metric(label="AUC-ROC Score", value=f"{auc_roc:.2f}")
+                    st.markdown(f"**Accuracy:** {report['accuracy']:.2%}")
+                    st.markdown(f"**Weighted Precision:** {report['weighted avg']['precision']:.2f}")
+                    st.markdown(f"**Weighted Recall:** {report['weighted avg']['recall']:.2f}")
+                    
+                    st.divider()
 
-                st.subheader("Confusion Matrix")
-                cm = confusion_matrix(y_test, y_pred)
-                fig, ax = plt.subplots(figsize=(6, 5))
-                sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_names, yticklabels=class_names, ax=ax)
-                st.pyplot(fig)
+                    st.subheader("⚙️ Computational Cost")
+                    st.markdown(f"**⏱️ Training Time:** `{training_time:.4f} seconds`")
+                    st.markdown(f"**⚡ Prediction Speed:** `{prediction_time:.4f} seconds`")
+                    st.markdown(f"**💾 Memory Usage:** `{memory_kb:.2f} KB`")
+
+                with col2:
+                    st.subheader("Confusion Matrix")
+                    cm = confusion_matrix(y_test, y_pred)
+                    fig, ax = plt.subplots(figsize=(6, 5))
+                    sns.heatmap(cm, annot=True, fmt='d', cmap='viridis', xticklabels=class_names, yticklabels=class_names, ax=ax)
+                    ax.set_xlabel('Predicted Labels')
+                    ax.set_ylabel('True Labels')
+                    st.pyplot(fig, use_container_width=True)
 
                 results_list.append({
                     'Algorithm': name, 'Training Time': training_time, 'Prediction Speed': prediction_time,
                     'Memory Usage': memory_kb, 'Evaluation Metrics (Precesion, Recall, Fscore, AUC-ROC)': eval_metrics_str
                 })
     
-    # --- K-Means Evaluation ---
+    # --- K-Means Evaluation (New Style) ---
     if "K-means" in selected_models:
-        with st.expander("▼ K-means Clustering Results", expanded=False):
+        with st.expander("**K-means Clustering** Results", expanded=True):
             X_processed = preprocessor.fit_transform(X_full)
             kmeans = KMeans(n_clusters=5, random_state=42, n_init=10)
             
@@ -150,8 +174,14 @@ if selected_models:
             training_time = time.time() - start_time
             silhouette = silhouette_score(X_processed, cluster_labels)
 
-            st.metric("Silhouette Score", f"{silhouette:.4f}")
-            st.info("K-means is unsupervised. A higher Silhouette Score (closer to 1) is better.")
+            k_col1, k_col2 = st.columns(2)
+            with k_col1:
+                st.metric("Silhouette Score", f"{silhouette:.4f}")
+                st.info("A Silhouette Score closer to 1 indicates better-defined clusters.")
+            
+            with k_col2:
+                st.markdown("**Computational Cost**")
+                st.markdown(f"**⏱️ Training Time:** `{training_time:.4f} seconds`")
 
             results_list.append({
                 'Algorithm': 'K-means', 'Training Time': training_time, 'Prediction Speed': np.nan, 'Memory Usage': np.nan,
@@ -160,11 +190,13 @@ if selected_models:
             
     # --- Final Summary Table ---
     if results_list:
-        st.header("📜 Final Comparison Table")
+        st.divider()
+        st.header("📜 Final Comparison Summary")
+        st.markdown("This table merges the practical performance metrics with theoretical properties of each algorithm for a holistic comparison.")
         
         theoretical_data = {
             'Algorithm': ["Decision Tree", "Logistic Regression", "k-Nearest Neighbors (kNN)", "Support Vector Machine (SVM)", "Neural Networks (NNs)", "Random Forest", "K-means"],
-            'Bias–Variance': ["Low Bias, High Variance", "High Bias, Low Variance", "Low Bias, High Variance", "Tunable", "Low Bias, High Variance", "Low Bias, Medium Variance", "N/A"],
+            'Bias–Variance': ["Low Bias, High Variance", "High Bias, Low Variance", "Low Bias, High Variance", "Tunable", "Low Bias, Medium Variance", "Low Bias, High Variance", "N/A"],
             'Data Size Sensitivity': ["Moderate", "Low", "High", "High", "Low", "Low", "Low"],
             'Hyperparameter Sensitivity': ["High", "Low", "High", "Very High", "Very High", "Moderate", "High"],
             'Robustness': ["Moderate", "Low", "Low", "High", "Moderate", "Very High", "Low"],
@@ -175,7 +207,7 @@ if selected_models:
         results_df = pd.DataFrame(results_list)
         theoretical_df = pd.DataFrame(theoretical_data)
         
-        final_df = pd.merge(theoretical_df, results_df, on='Algorithm', how='left')
+        final_df = pd.merge(theoretical_df, results_df, on='Algorithm', how='inner')
         
         # Reorder columns to exactly match the desired format
         final_df = final_df[[
@@ -184,7 +216,10 @@ if selected_models:
             'Evaluation Metrics (Precesion, Recall, Fscore, AUC-ROC)', 'Best-Suited Metrics', 'Remarks'
         ]]
         
-        st.dataframe(final_df)
+        # Filter the final_df to only show selected models
+        final_df = final_df[final_df['Algorithm'].isin(selected_models)]
+
+        st.dataframe(final_df, use_container_width=True)
         
         @st.cache_data
         def convert_df_to_csv(df):
@@ -198,5 +233,4 @@ if selected_models:
         )
 
 else:
-    st.info("Please select one or more models from the sidebar to begin the analysis.")
-
+    st.info("👈 Please select one or more models from the sidebar to begin the analysis.")
